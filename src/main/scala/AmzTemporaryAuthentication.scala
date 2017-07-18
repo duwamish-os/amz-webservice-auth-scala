@@ -26,9 +26,6 @@ class AmzTemporaryAuthentication {
 
   def resources(): Future[JsValue] = {
 
-    //System.setProperty("javax.net.debug", "ssl")
-    System.setProperty("https.protocols", "TLSv1.2")
-
     val connectionFlow: Flow[HttpRequest, HttpResponse, Future[Http.OutgoingConnection]] =
       Http().outgoingConnectionHttps(config.getString("amz.endpoint"))
 
@@ -69,8 +66,6 @@ class AmzTemporaryAuthentication {
         json.fields("Expiration").convertTo[String],
         json.fields("SessionToken").convertTo[String])
     }
-
-    println("[INFO] returning " + x)
     x
   }
 
