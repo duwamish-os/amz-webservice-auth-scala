@@ -1,13 +1,15 @@
 
 import java.io.{FileOutputStream, PrintWriter}
 import java.nio.file.{FileAlreadyExistsException, Files, Paths}
+import java.text.SimpleDateFormat
+import java.time.OffsetDateTime
+import java.util.Date
 
 import com.typesafe.config.ConfigFactory
 import spray.json.JsArray
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import spray.json.DefaultJsonProtocol._
-
 import spray.json._
 
 /**
@@ -23,7 +25,6 @@ object GetAuthenticationToken {
 
   def main(args: Array[String]): Unit = {
 
-    //System.setProperty("javax.net.debug", "ssl")
     System.setProperty("https.protocols", "TLSv1.2")
 
     if(config.hasPath("auth.server.certs.store") && config.getString("auth.server.certs.store").nonEmpty) {
@@ -51,60 +52,77 @@ object GetAuthenticationToken {
 
       val selected = roles(roleToToken)
 
-      val tokenRequest =
-        s"""
-          {
-           "Role": "${selected._2._1}",
-           "Principal": "${selected._2._2}"
-          }
-        """.stripMargin
+      //repeat
+      var expiresAt = 0l
 
-      println("[INFO] Requesting token for " + tokenRequest.parseJson)
-
-      val tokenResponse = auth.getToken(tokenRequest)
-      tokenResponse.map { response =>
-        val credentialsPath = config.getString("auth.credentials.path")
-
-        try {
-          val path = Paths.get(credentialsPath)
-          Files.createFile(path)
-        } catch {
-          case e: FileAlreadyExistsException => println("")
-          case e: Throwable => e.printStackTrace()
+      while(true) {
+        if (System.currentTimeMillis() >= expiresAt) {
+          println("[INFO] Start getting an access key and secret key")
+          val expires = getAuthAccessToken(selected)
+          val date = Date.from(OffsetDateTime.parse(expires).toInstant)
+          expiresAt = date.getTime
         }
 
-        println(s"[INFO] Writing to credentials file $credentialsPath")
+      }
+    })
+  }
 
-        try {
-          val writer = new PrintWriter(new FileOutputStream(credentialsPath, false))
+  def getAuthAccessToken(selected: (Int, (String, String))): String = {
+    val tokenRequest =
+      s"""{
+           "Role": "${selected._2._1}",
+           "Principal": "${selected._2._2}"
+          }""".stripMargin
 
-          writer.write(
-            s"""[${config.getString("auth.credentials.name")}]
+    println("[INFO] Requesting access token for " + tokenRequest.parseJson)
+
+    val tokenResponse = auth.getToken(tokenRequest)
+    tokenResponse.map { response =>
+      val credentialsPath = config.getString("auth.credentials.path")
+
+      try {
+        val path = Paths.get(credentialsPath)
+        Files.createFile(path)
+      } catch {
+        case e: FileAlreadyExistsException => println("")
+        case e: Throwable => e.printStackTrace()
+      }
+
+      println(s"[INFO] Writing to credentials file $credentialsPath")
+
+      try {
+        val writer = new PrintWriter(new FileOutputStream(credentialsPath, false))
+
+        writer.write(
+          s"""[${config.getString("auth.credentials.name")}]
 aws_access_key_id=${response._1}
 aws_secret_access_key=${response._2}
 aws_session_token=${response._4}
 aws_security_token=${response._4}""".stripMargin)
 
-          println(s"[INFO] Updated public credentials to path $credentialsPath, will expire at ${response._3}")
-          println("""
+        val date = Date.from(OffsetDateTime.parse(response._3).toInstant)
+        println(s"[INFO] Updated public credentials to path $credentialsPath, will expire at $date")
+        println("""
   .--.  .-"     "-.  .--.
  / .. \/  .-. .-.  \/ .. \
-| |  '|  /   Y   \  |'  | |
-| \   \  \ 0 | 0 /  /   / |
+ |  '|  /   Y   \  |'  | |
+ \   \  \ 0 | 0 /  /   / |
  \ '- ,\.-"`` ``"-./, -' /
   `'-' /_   ^ ^   _\ '-'`
-      |  \._   _./  |
+  \._   _./  |
       \   \ `~` /   /
        '._ '-=-' _.'
           '~---~'
-            """.stripMargin)
-          writer.close()
+                """.stripMargin)
+        writer.close()
 
-        } catch {
-          case e: Throwable => e.printStackTrace()
-        }
+        response._3
+      } catch {
+        case e: Throwable => e.printStackTrace()
       }
-    })
+    }
+
+    "error getting access key and expire date"
   }
 
 }

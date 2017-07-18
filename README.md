@@ -17,12 +17,12 @@ keytool -importcert -alias endpoint.com -keystore $JAVA_HOME/jre/lib/security/ca
 
 create [base64 b2t hash](https://wiki.openssl.org/index.php/Enc#Base64_Encoding) of username:password
 
-```
+```bash
 openssl enc -base64 <<< 'your_amz_username:your_amz_password'
 opensssl enc -base64 -d <<< whatever_bas64
 ```
 
-| config                |                                       |
+| config                |  value                                |
 |-----------------------|---------------------------------------|
 | amz.endpoint          | _                                     |
 | amz.resources.roles   | /authentication/roleArns              |
