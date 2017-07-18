@@ -26,7 +26,7 @@ class AmzTemporaryAuthentication {
 
   def resources(): Future[JsValue] = {
 
-    System.setProperty("javax.net.debug", "ssl")
+    //System.setProperty("javax.net.debug", "ssl")
     System.setProperty("https.protocols", "TLSv1.2")
 
     val connectionFlow: Flow[HttpRequest, HttpResponse, Future[Http.OutgoingConnection]] =

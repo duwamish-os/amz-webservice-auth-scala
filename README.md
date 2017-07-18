@@ -1,4 +1,33 @@
 
+install cert for endpoint so that stupid java can TLS connect, 
+
+```bash
+git clone https://github.com/escline/InstallCert
+javac InstallCert.java
+java InstallCert endpoint:443
+```
+
+create [base64 b2t hash](https://wiki.openssl.org/index.php/Enc#Base64_Encoding) of username:password
+
+```
+openssl enc -base64 <<< 'your_amz_username:your_amz_password'
+opensssl enc -base64 -d <<< whatever_bas64
+```
+
+| config                |                                       |
+|-----------------------|---------------------------------------|
+| amz.endpoint          | _                                     |
+| amz.resources.roles   | /authentication/roleArns              |
+| amz.resources.tokens  | /authentication/awsToken              |
+| amz.basic.auth        | hashcode of username and passowrd     |
+| amz.username          | prayagupd                             |
+| amz.password          | _                                     |
+| auth.credentials.path | /Users/prayagupd/.aws/credentials     |
+| auth.credentials.name | default                               |
+
+```
+sbt run
+```
 
 ```bash
 curl -XPOST --header "Content-Type application/json" --header "Authorization: Basic base64_hash" -d '{"Role":"arn:aws:iam::accountId:role/SomeRole","Principal":"arn:aws:iam::accountId:saml-provider/DWM"}' https://pbcld-awstoken.duwamish.net/authentication/awsToken

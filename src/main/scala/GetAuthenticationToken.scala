@@ -51,22 +51,26 @@ object GetAuthenticationToken {
           val path = Paths.get(credentialsPath)
           Files.createFile(path)
         } catch {
-          case e: Throwable => println(e.getMessage)
+          case e: Throwable => e.printStackTrace()
         }
 
         println(s"Writing to credentials file $credentialsPath")
 
-        val writer = new PrintWriter(new FileOutputStream(credentialsPath, false))
+        try {
+          val writer = new PrintWriter(new FileOutputStream(credentialsPath, false))
 
-        writer.write(s"""[${config.getString("auth.credentials.name")}]
+          writer.write(
+            s"""[${config.getString("auth.credentials.name")}]
 aws_access_key_id=${response._1}
 aws_secret_access_key=${response._2}
 aws_session_token=${response._4}
 aws_security_token=${response._4}""".stripMargin)
+          println(s"[INFO] Updated public credentials to path $credentialsPath, will expire at ${response._3}")
+          writer.close()
 
-        writer.close()
-
-        println(s"[INFO] Updated public credentials to path $credentialsPath")
+        } catch {
+          case e: Throwable => e.printStackTrace()
+        }
       }
     })
   }
