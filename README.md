@@ -4,7 +4,15 @@ install cert for endpoint so that stupid java can TLS connect,
 ```bash
 git clone https://github.com/escline/InstallCert
 javac InstallCert.java
-java InstallCert endpoint:443
+java InstallCert endpoint.com:443
+
+cp jssecacerts $JAVA_HOME/jre/lib/security # was enough on Mac Unix OS
+
+# or following maybe for windows - https://stackoverflow.com/a/32074827/432903
+
+keytool -exportcert -alias endpoint.com-1 -keystore jssecacerts -storepass changeit -file endpoint.com.cert
+keytool -importcert -alias endpoint.com -keystore $JAVA_HOME/jre/lib/security/cacerts -storepass changeit -file endpoint.com.cert
+
 ```
 
 create [base64 b2t hash](https://wiki.openssl.org/index.php/Enc#Base64_Encoding) of username:password
