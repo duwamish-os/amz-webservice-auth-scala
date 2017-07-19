@@ -12,6 +12,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import spray.json.DefaultJsonProtocol._
 import spray.json._
 
+import scala.concurrent.Await
+
 /**
   * Created by prayagupd
   * on 7/17/17.
@@ -56,18 +58,19 @@ object GetAuthenticationToken {
       var expiresAt = 0l
 
       while(true) {
-        if (System.currentTimeMillis() >= expiresAt) {
-          println("[INFO] Start getting an access key and secret key")
+        val currentTime = System.currentTimeMillis()
+        if (currentTime >= expiresAt) {
           val expires = getAuthAccessToken(selected)
-          val date = Date.from(OffsetDateTime.parse(expires).toInstant)
-          expiresAt = date.getTime
+          expiresAt = expires.getTime - (30 * 60 * 1000)
+          println(s"[INFO] But don't worry I will renew the access token in ${(expiresAt - currentTime)/1000} seconds.")
         }
 
       }
     })
   }
 
-  def getAuthAccessToken(selected: (Int, (String, String))): String = {
+  def getAuthAccessToken(selected: (Int, (String, String))): Date = {
+
     val tokenRequest =
       s"""{
            "Role": "${selected._2._1}",
@@ -77,7 +80,9 @@ object GetAuthenticationToken {
     println("[INFO] Requesting access token for " + tokenRequest.parseJson)
 
     val tokenResponse = auth.getToken(tokenRequest)
-    tokenResponse.map { response =>
+
+    val expires =
+      tokenResponse.map { response =>
       val credentialsPath = config.getString("auth.credentials.path")
 
       try {
@@ -101,8 +106,9 @@ aws_session_token=${response._4}
 aws_security_token=${response._4}""".stripMargin)
 
         val date = Date.from(OffsetDateTime.parse(response._3).toInstant)
-        println(s"[INFO] Updated public credentials to path $credentialsPath, will expire at $date")
-        println("""
+        println(s"[INFO] Updated public credentials to path $credentialsPath, supposed to expire at $date")
+        println(
+          """
   .--.  .-"     "-.  .--.
  / .. \/  .-. .-.  \/ .. \
  |  '|  /   Y   \  |'  | |
@@ -113,16 +119,22 @@ aws_security_token=${response._4}""".stripMargin)
       \   \ `~` /   /
        '._ '-=-' _.'
           '~---~'
-                """.stripMargin)
+                """.
+            stripMargin)
         writer.close()
 
-        response._3
+        date
       } catch {
-        case e: Throwable => e.printStackTrace()
+        case e: Throwable => {
+          println(s"[ERROR] ${e.getMessage}")
+          e.printStackTrace()
+          new Date()
+        }
       }
     }
 
-    "error getting access key and expire date"
+    import scala.concurrent.duration._
+    Await.result(expires, 1 seconds)
   }
 
 }

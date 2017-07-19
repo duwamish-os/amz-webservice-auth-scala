@@ -25,9 +25,9 @@ opensssl enc -base64 -d <<< whatever_bas64
 | config                |  value                                |
 |-----------------------|---------------------------------------|
 | amz.endpoint          | _                                     |
-| amz.resources.roles   | /authentication/roleArns              |
-| amz.resources.tokens  | /authentication/awsToken              |
-| amz.basic.auth        | hashcode of username and passowrd     |
+| amz.resources.roles   | /authentication/authRoles             |
+| amz.resources.tokens  | /authentication/amzToken              |
+| amz.basic.auth        | hashcode of username: password        |
 | amz.username          | prayagupd                             |
 | amz.password          | _                                     |
 | auth.credentials.path | /Users/prayagupd/.aws/credentials     |
