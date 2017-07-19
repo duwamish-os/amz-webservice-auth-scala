@@ -24,13 +24,13 @@ class AmzTemporaryAuthentication {
   implicit val actorMaterializer = ActorMaterializer()
   implicit val executionContext = system.dispatcher
 
-  def resources(): Future[JsValue] = {
+  def resources(authBase64: String): Future[JsValue] = {
 
     val connectionFlow: Flow[HttpRequest, HttpResponse, Future[Http.OutgoingConnection]] =
       Http().outgoingConnectionHttps(config.getString("amz.endpoint"))
 
     val resourcesFut = Source.single(HttpRequest(uri = Uri(config.getString("amz.resources.roles")),
-      headers = List(RawHeader("Authorization", s"Basic ${config.getString("amz.basic.auth")}"))))
+      headers = List(RawHeader("Authorization", s"Basic $authBase64"))))
       .via(connectionFlow)
       .runWith(Sink.head)
 
@@ -43,14 +43,13 @@ class AmzTemporaryAuthentication {
 
   }
 
-
-  def getToken(resource: String): Future[(String, String, String, String)] = {
+  def getToken(authenticationBase64: String, resource: String): Future[(String, String, String, String)] = {
     val connectionFlow: Flow[HttpRequest, HttpResponse, Future[Http.OutgoingConnection]] =
       Http().outgoingConnectionHttps(config.getString("amz.endpoint"))
 
     val resourcesFut = Source.single(HttpRequest(method = HttpMethods.POST,
       uri = Uri(config.getString("amz.resources.tokens")),
-      headers = List(RawHeader("Authorization", s"Basic ${config.getString("amz.basic.auth")}")),
+      headers = List(RawHeader("Authorization", s"Basic $authenticationBase64")),
       entity = HttpEntity(MediaTypes.`application/json`, resource)
     ))
       .via(connectionFlow)

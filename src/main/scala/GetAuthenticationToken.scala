@@ -1,9 +1,10 @@
 
 import java.io.{FileOutputStream, PrintWriter}
+import java.nio.charset.StandardCharsets
 import java.nio.file.{FileAlreadyExistsException, Files, Paths}
 import java.text.SimpleDateFormat
 import java.time.OffsetDateTime
-import java.util.Date
+import java.util.{Base64, Date}
 
 import com.typesafe.config.ConfigFactory
 import spray.json.JsArray
@@ -33,7 +34,14 @@ object GetAuthenticationToken {
       System.setProperty("javax.net.ssl.trustStore", config.getString("auth.server.certs.store"))
     }
 
-    auth.resources().map(res => {
+    print("Please enter your amz username: ")
+    val username = scala.io.StdIn.readLine()
+    print("Please enter amz password: ")
+    val password= System.console().readPassword().foldLeft(new String)((a, b) => a + b)
+
+    val authBase64 = Base64.getEncoder.encodeToString(s"$username:$password".getBytes(StandardCharsets.UTF_8))
+
+    auth.resources(authBase64).map(res => {
       val roles = res.asInstanceOf[JsArray].elements.zipWithIndex.map { case (role, index) => {
         index -> (role.asJsObject.fields("Role").convertTo[String] -> role.asJsObject.fields("Principal").convertTo[String])
       }}.map { tuple => {
@@ -60,7 +68,7 @@ object GetAuthenticationToken {
       while(true) {
         val currentTime = System.currentTimeMillis()
         if (currentTime >= expiresAt) {
-          val expires = getAuthAccessToken(selected)
+          val expires = getAuthAccessToken(authBase64, selected)
           expiresAt = expires.getTime - (30 * 60 * 1000)
           println(s"[INFO] But don't worry I will renew the access token in ${(expiresAt - currentTime)/1000} seconds.")
         }
@@ -69,7 +77,7 @@ object GetAuthenticationToken {
     })
   }
 
-  def getAuthAccessToken(selected: (Int, (String, String))): Date = {
+  def getAuthAccessToken(authenticationBase64: String, selected: (Int, (String, String))): Date = {
 
     val tokenRequest =
       s"""{
@@ -79,7 +87,7 @@ object GetAuthenticationToken {
 
     println("[INFO] Requesting access token for " + tokenRequest.parseJson)
 
-    val tokenResponse = auth.getToken(tokenRequest)
+    val tokenResponse = auth.getToken(authenticationBase64, tokenRequest)
 
     val expires =
       tokenResponse.map { response =>
