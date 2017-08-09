@@ -1,3 +1,6 @@
+import java.nio.charset.StandardCharsets
+import java.util.Base64
+
 import org.scalatest.{FunSuite, Matchers}
 import spray.json._
 
@@ -14,10 +17,12 @@ class AmzTemporaryAuthenticationSpecs extends FunSuite with Matchers {
 
   val auth = new AmzTemporaryAuthentication
 
+  val authBase64 = Base64.getEncoder.encodeToString(s"test:test".getBytes(StandardCharsets.UTF_8))
+
   //FIXME stupid test
   test("connects to Amz Resources") {
 
-    val response: Future[JsValue] = auth.resources()
+    val response: Future[JsValue] = auth.resources(authBase64)
 
     response.map { r =>
       r.asJsObject.fields.size should be > 0
@@ -28,20 +33,13 @@ class AmzTemporaryAuthenticationSpecs extends FunSuite with Matchers {
 
   test("tokens") {
 
-    auth.getToken(
+    auth.getToken(authBase64,
       """{
          "Role":"arn:aws:iam::accountId:role/SomeRole",
         "Principal":"arn:aws:iam::accountId:saml-provider/DWM"
         }""".stripMargin)
 
     Thread.sleep(20000)
-  }
-
-  test("test future") {
-    val r = auth.testFuture()
-
-    Thread.sleep(3000)
-    r.foreach(x => println("[INFO]"+x))
   }
 
 }

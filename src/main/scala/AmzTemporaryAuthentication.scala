@@ -68,16 +68,4 @@ class AmzTemporaryAuthentication {
     x
   }
 
-  def testFuture(): Future[String] = {
-
-    def future = Future[String] {
-      Thread.sleep(1000)
-      "I'm from future"
-    }
-
-    future.map(x => {
-      println(s"[INFO] $x")
-      return Future(x + " - add something")
-    }).recover { case e: Exception => return Future("error") }
-  }
 }

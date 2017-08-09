@@ -126,8 +126,7 @@ aws_security_token=${response._4}""".stripMargin)
   \._   _./  |
       \   \ `~` /   /
        '._ '-=-' _.'
-          '~---~'
-                """.
+          '~-||-~'""".
             stripMargin)
         writer.close()
 
